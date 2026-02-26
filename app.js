@@ -26,6 +26,28 @@ function parseYouTubeUrl(input) {
   return null;
 }
 
+function extractYouTubeIdsFromText(text) {
+  if (!text || typeof text !== 'string') return [];
+  var ids = [];
+  var seen = new Set();
+  var patterns = [
+    /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/g,
+    /youtu\.be\/([a-zA-Z0-9_-]{11})/g,
+    /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/g,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/g
+  ];
+  patterns.forEach(function (re) {
+    var m;
+    while ((m = re.exec(text)) !== null) {
+      if (!seen.has(m[1])) {
+        seen.add(m[1]);
+        ids.push(m[1]);
+      }
+    }
+  });
+  return ids;
+}
+
 // ----- 状態 -----
 let playlist = [];
 let currentIndex = -1;
@@ -51,6 +73,8 @@ const loadTxtBtn = document.getElementById('load-txt-btn');
 const loadTxtInput = document.getElementById('load-txt-input');
 const copyListBtn = document.getElementById('copy-list-btn');
 const pasteListBtn = document.getElementById('paste-list-btn');
+const pageUrlInput = document.getElementById('page-url-input');
+const collectFromPageBtn = document.getElementById('collect-from-page-btn');
 const skipEmbedDisabledCheckbox = document.getElementById('skip-embed-disabled');
 const playModeBar = document.getElementById('play-mode-bar');
 const playModeBtns = document.querySelectorAll('.play-mode-btn');
@@ -380,6 +404,56 @@ function pasteListFromClipboard() {
   }).catch(function () { alert('クリップボードの読み取りに失敗しました'); });
 }
 
+var CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+function collectFromPage() {
+  var raw = pageUrlInput && pageUrlInput.value.trim();
+  if (!raw) {
+    alert('WebページのURLを入力してください。');
+    return;
+  }
+  if (!/^https?:\/\//i.test(raw)) {
+    alert('有効なURLを入力してください（http:// または https:// で始まります）。');
+    return;
+  }
+  var btn = collectFromPageBtn;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '収集中...';
+  }
+  var proxyUrl = CORS_PROXY + encodeURIComponent(raw);
+  fetch(proxyUrl)
+    .then(function (res) {
+      if (!res.ok) throw new Error('ページの取得に失敗しました（' + res.status + '）');
+      return res.text();
+    })
+    .then(function (html) {
+      var ids = extractYouTubeIdsFromText(html);
+      var existingIds = new Set(playlist.map(function (item) { return item.id; }));
+      var added = 0;
+      ids.forEach(function (id) {
+        if (!existingIds.has(id)) {
+          existingIds.add(id);
+          playlist.push({ id: id, url: 'https://www.youtube.com/watch?v=' + id });
+          added++;
+        }
+      });
+      savePlaylist();
+      renderPlaylist();
+      if (pageUrlInput) pageUrlInput.value = '';
+      alert('ページから ' + ids.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (ids.length - added) + ' 件は重複のためスキップしました。');
+    })
+    .catch(function (err) {
+      alert('収集に失敗しました。\n' + (err.message || err) + '\n\nCORSの制限で取得できないページの場合は、TXTに保存したリストを読み込むか、手動でURLを追加してください。');
+    })
+    .finally(function () {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'ページから収集';
+      }
+    });
+}
+
 function loadListFromTxt(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -606,6 +680,7 @@ saveTxtBtn.addEventListener('click', saveListToTxt);
 loadTxtBtn.addEventListener('click', () => loadTxtInput.click());
 if (copyListBtn) copyListBtn.addEventListener('click', copyListToClipboard);
 if (pasteListBtn) pasteListBtn.addEventListener('click', pasteListFromClipboard);
+if (collectFromPageBtn) collectFromPageBtn.addEventListener('click', collectFromPage);
 loadTxtInput.addEventListener('change', (e) => {
   const file = e.target.files?.[0];
   if (file) loadListFromTxt(file);
