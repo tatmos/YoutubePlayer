@@ -55,6 +55,9 @@ const playModeBtns = document.querySelectorAll('.play-mode-btn');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
 const playbackSpeedSelect = document.getElementById('playback-speed');
+const openEmbedDisabledInTabCheckbox = document.getElementById('open-embed-disabled-in-tab');
+const openEmbedDisabledBtn = document.getElementById('open-embed-disabled-btn');
+const instantPlaylistBtn = document.getElementById('instant-playlist-btn');
 
 // ----- 永続化 -----
 function loadPlaylist() {
@@ -191,12 +194,50 @@ function renderPlaylist() {
       currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   }
+  var embedDisabledItems = getEmbedDisabledItems();
+  if (openEmbedDisabledBtn) {
+    openEmbedDisabledBtn.disabled = embedDisabledItems.length === 0;
+    openEmbedDisabledBtn.textContent = embedDisabledItems.length === 0 ? '埋め込み不可の動画を別タブで開く' : '埋め込み不可の動画を別タブで開く (' + embedDisabledItems.length + '件)';
+  }
+  if (instantPlaylistBtn) {
+    instantPlaylistBtn.disabled = playlist.length === 0;
+    instantPlaylistBtn.textContent = playlist.length === 0 ? '即席プレイリストで開く' : '即席プレイリストで開く (' + playlist.length + '件)';
+  }
 }
 
 function escapeHtml(s) {
   const div = document.createElement('div');
   div.textContent = s;
   return div.innerHTML;
+}
+
+function getEmbedDisabledItems() {
+  return playlist.filter(function (item) { return item.embedDisabled; });
+}
+
+function openEmbedDisabledInNewTab() {
+  var items = getEmbedDisabledItems();
+  if (items.length === 0) return;
+  var listHtml = items.map(function (item, i) {
+    var url = 'https://www.youtube.com/watch?v=' + escapeHtml(item.id);
+    var label = escapeHtml(item.url);
+    return '<li><a href="' + url + '" target="_blank" rel="noopener noreferrer">' + (i + 1) + '. ' + label + '</a></li>';
+  }).join('');
+  var html = '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>埋め込み再生できなかった動画</title><style>body{font-family:sans-serif;max-width:720px;margin:24px auto;padding:0 16px;background:#1a1a1a;color:#eee;}h1{font-size:1.25rem;}ul{list-style:none;padding:0;}li{margin:8px 0;}a{color:#e53935;}a:hover{text-decoration:underline;}</style></head><body><h1>埋め込み再生できなかった動画</h1><p>以下のリンクからYouTubeで視聴できます。</p><ul>' + listHtml + '</ul></body></html>';
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  window.open(url, '_blank', 'noopener');
+}
+
+function getInstantPlaylistUrl() {
+  if (!playlist.length) return null;
+  var ids = playlist.map(function (item) { return item.id; }).join(',');
+  return 'https://www.youtube.com/watch_videos?video_ids=' + ids;
+}
+
+function openInstantPlaylist() {
+  var url = getInstantPlaylistUrl();
+  if (url) window.open(url, '_blank', 'noopener');
 }
 
 // ----- リスト操作 -----
@@ -330,6 +371,10 @@ function playNext() {
   }
   if (playMode === PLAY_MODES.SEQUENTIAL) {
     if (currentIndex >= playlist.length - 1) {
+      if (openEmbedDisabledInTabCheckbox && openEmbedDisabledInTabCheckbox.checked && getEmbedDisabledItems().length > 0) {
+        endOfListReached();
+        return;
+      }
       playVideo(0);
     } else {
       playVideo(currentIndex + 1);
@@ -339,11 +384,20 @@ function playNext() {
   if (playMode === PLAY_MODES.SHUFFLE) {
     shufflePosition++;
     if (shufflePosition >= shuffleOrder.length) {
+      if (openEmbedDisabledInTabCheckbox && openEmbedDisabledInTabCheckbox.checked && getEmbedDisabledItems().length > 0) {
+        endOfListReached();
+        return;
+      }
       shuffleOrder = buildShuffleOrder();
       shufflePosition = 0;
     }
     playVideo(shuffleOrder[shufflePosition]);
   }
+}
+
+function endOfListReached() {
+  stopPlayer();
+  openEmbedDisabledInNewTab();
 }
 
 function playPrevious() {
@@ -453,6 +507,8 @@ playAllBtn.addEventListener('click', function () {
 clearBtn.addEventListener('click', clearList);
 if (prevBtn) prevBtn.addEventListener('click', playPrevious);
 if (nextBtn) nextBtn.addEventListener('click', playNext);
+if (openEmbedDisabledBtn) openEmbedDisabledBtn.addEventListener('click', openEmbedDisabledInNewTab);
+if (instantPlaylistBtn) instantPlaylistBtn.addEventListener('click', openInstantPlaylist);
 if (playbackSpeedSelect) {
   playbackSpeedSelect.addEventListener('change', function () {
     var r = parseFloat(playbackSpeedSelect.value, 10);

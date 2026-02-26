@@ -258,6 +258,11 @@ body {
   accent-color: var(--accent);
 }
 
+.embed-disabled-actions {
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
 /* ===== Buttons ===== */
 .btn {
   padding: 10px 18px;

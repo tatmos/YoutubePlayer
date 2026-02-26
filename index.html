@@ -68,6 +68,14 @@
           <input type="checkbox" id="skip-embed-disabled" />
           <span>埋め込み再生できない動画をスキップ</span>
         </label>
+        <label class="skip-embed-option">
+          <input type="checkbox" id="open-embed-disabled-in-tab" />
+          <span>埋め込み再生できなかったものを別タブでまとめて再生</span>
+        </label>
+        <div class="embed-disabled-actions">
+          <button type="button" id="open-embed-disabled-btn" class="btn btn-outline" disabled>埋め込み不可の動画を別タブで開く</button>
+          <button type="button" id="instant-playlist-btn" class="btn btn-outline" disabled title="リストをYouTubeの即席プレイリストで再生">即席プレイリストで開く</button>
+        </div>
 
         <ul id="playlist" class="playlist"></ul>
       </section>
