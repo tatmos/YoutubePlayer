@@ -75,6 +75,8 @@ const copyListBtn = document.getElementById('copy-list-btn');
 const pasteListBtn = document.getElementById('paste-list-btn');
 const pageUrlInput = document.getElementById('page-url-input');
 const collectFromPageBtn = document.getElementById('collect-from-page-btn');
+const sourceTextInput = document.getElementById('source-text-input');
+const collectFromSourceBtn = document.getElementById('collect-from-source-btn');
 const skipEmbedDisabledCheckbox = document.getElementById('skip-embed-disabled');
 const playModeBar = document.getElementById('play-mode-bar');
 const playModeBtns = document.querySelectorAll('.play-mode-btn');
@@ -463,6 +465,40 @@ function collectFromPage() {
     });
 }
 
+function collectFromSource() {
+  function runWithText(text) {
+    text = (text || '').trim();
+    if (!text) {
+      alert('クリップボードにテキストがありません。ページのソースをコピーしてから「ソースから収集」を押してください。');
+      return;
+    }
+    var ids = extractYouTubeIdsFromText(text);
+    if (ids.length === 0) {
+      alert('YouTubeリンクが見つかりませんでした。');
+      return;
+    }
+    var existingIds = new Set(playlist.map(function (item) { return item.id; }));
+    var added = 0;
+    ids.forEach(function (id) {
+      if (!existingIds.has(id)) {
+        existingIds.add(id);
+        playlist.push({ id: id, url: 'https://www.youtube.com/watch?v=' + id });
+        added++;
+      }
+    });
+    savePlaylist();
+    renderPlaylist();
+    alert('ソースから ' + ids.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (ids.length - added) + ' 件は重複のためスキップしました。');
+  }
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(runWithText).catch(function () {
+      alert('クリップボードの読み取りができません。ブラウザの設定でクリップボードへのアクセスを許可してください。');
+    });
+  } else {
+    alert('お使いのブラウザではクリップボードの読み取りに対応していません。');
+  }
+}
+
 function loadListFromTxt(file) {
   if (!file) return;
   const reader = new FileReader();
@@ -690,6 +726,7 @@ loadTxtBtn.addEventListener('click', () => loadTxtInput.click());
 if (copyListBtn) copyListBtn.addEventListener('click', copyListToClipboard);
 if (pasteListBtn) pasteListBtn.addEventListener('click', pasteListFromClipboard);
 if (collectFromPageBtn) collectFromPageBtn.addEventListener('click', collectFromPage);
+if (collectFromSourceBtn) collectFromSourceBtn.addEventListener('click', collectFromSource);
 loadTxtInput.addEventListener('change', (e) => {
   const file = e.target.files?.[0];
   if (file) loadListFromTxt(file);
