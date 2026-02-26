@@ -35,6 +35,7 @@
             <option value="2">2x</option>
           </select>
         </div>
+        <p id="random-skip-countdown" class="random-skip-countdown" style="display: none;" aria-live="polite"></p>
       </section>
 
       <section class="list-section">
@@ -92,6 +93,10 @@
               <label class="skip-embed-option">
                 <input type="checkbox" id="open-embed-disabled-in-tab" checked />
                 <span>埋め込み再生できなかったものを即席プレイリストで再生</span>
+              </label>
+              <label class="skip-embed-option">
+                <input type="checkbox" id="random-skip-watch" />
+                <span>ランダムポジション飛ばし見（長い動画は30秒以降から90秒間だけ再生して次へ）</span>
               </label>
               <div class="embed-disabled-actions">
                 <button type="button" id="open-embed-disabled-btn" class="btn btn-outline" disabled>埋め込み不可の動画を別タブで開く</button>

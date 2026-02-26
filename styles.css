@@ -135,6 +135,15 @@ body {
   border-color: var(--accent);
 }
 
+.random-skip-countdown {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  color: var(--accent);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
 .play-mode-btns {
   display: flex;
   gap: 0;

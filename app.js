@@ -76,6 +76,26 @@ let playMode = PLAY_MODES.SEQUENTIAL;
 let shuffleOrder = [];
 let shufflePosition = 0;
 let playbackRate = 1;
+let randomSkipWatchTimerId = null;
+let randomSkipCountdownIntervalId = null;
+let randomSkipSeekDone = false;
+const RANDOM_SKIP_MIN_START = 30;
+const RANDOM_SKIP_SEGMENT_SEC = 90;
+
+function clearRandomSkipCountdown() {
+  if (randomSkipCountdownIntervalId != null) {
+    clearInterval(randomSkipCountdownIntervalId);
+    randomSkipCountdownIntervalId = null;
+  }
+  if (randomSkipCountdownEl) randomSkipCountdownEl.style.display = 'none';
+}
+
+function formatCountdownSec(sec) {
+  if (sec <= 0) return '0:00';
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
 
 // ----- DOM -----
 const urlInput = document.getElementById('url-input');
@@ -105,6 +125,8 @@ const nextBtn = document.getElementById('next-btn');
 const playbackSpeedSelect = document.getElementById('playback-speed');
 const openEmbedDisabledInTabCheckbox = document.getElementById('open-embed-disabled-in-tab');
 const openEmbedDisabledBtn = document.getElementById('open-embed-disabled-btn');
+const randomSkipWatchCheckbox = document.getElementById('random-skip-watch');
+const randomSkipCountdownEl = document.getElementById('random-skip-countdown');
 const instantPlaylistEmbedDisabledBtn = document.getElementById('instant-playlist-embed-disabled-btn');
 const instantPlaylistBtn = document.getElementById('instant-playlist-btn');
 const copyInstantPlaylistBtn = document.getElementById('copy-instant-playlist-btn');
@@ -604,11 +626,22 @@ function stopPlayer() {
   currentIndex = -1;
   document.querySelector('.player-section')?.classList.remove('playing');
   playerHint.style.display = '';
+  if (randomSkipWatchTimerId != null) {
+    clearTimeout(randomSkipWatchTimerId);
+    randomSkipWatchTimerId = null;
+  }
+  clearRandomSkipCountdown();
   renderPlaylist();
 }
 
 function playVideo(index) {
   if (index < 0 || index >= playlist.length) return;
+  if (randomSkipWatchTimerId != null) {
+    clearTimeout(randomSkipWatchTimerId);
+    randomSkipWatchTimerId = null;
+  }
+  clearRandomSkipCountdown();
+  randomSkipSeekDone = false;
   currentIndex = index;
   if (playMode === PLAY_MODES.SHUFFLE) {
     if (shuffleOrder.length !== playlist.length) {
@@ -631,6 +664,11 @@ function playVideo(index) {
 
 function playNext() {
   if (playlist.length === 0) return;
+  if (randomSkipWatchTimerId != null) {
+    clearTimeout(randomSkipWatchTimerId);
+    randomSkipWatchTimerId = null;
+  }
+  clearRandomSkipCountdown();
   if (playMode === PLAY_MODES.SINGLE_LOOP) {
     playVideo(currentIndex);
     return;
@@ -726,6 +764,11 @@ function createPlayer(videoId) {
       },
       onStateChange(e) {
         if (e.data === YT.PlayerState.ENDED) {
+          if (randomSkipWatchTimerId != null) {
+            clearTimeout(randomSkipWatchTimerId);
+            randomSkipWatchTimerId = null;
+          }
+          clearRandomSkipCountdown();
           playNext();
         } else if ((e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) && currentIndex >= 0 && currentIndex < playlist.length) {
           var sec = e.target.getDuration && e.target.getDuration();
@@ -735,6 +778,36 @@ function createPlayer(videoId) {
             renderPlaylist();
           }
           applyPlaybackRate(e.target);
+          if (randomSkipWatchCheckbox && randomSkipWatchCheckbox.checked && !randomSkipSeekDone && typeof sec === 'number' && sec > 0) {
+            var minDuration = RANDOM_SKIP_MIN_START + RANDOM_SKIP_SEGMENT_SEC;
+            if (sec >= minDuration) {
+              var maxStart = sec - RANDOM_SKIP_SEGMENT_SEC;
+              var start = RANDOM_SKIP_MIN_START + Math.random() * (maxStart - RANDOM_SKIP_MIN_START);
+              start = Math.floor(start);
+              if (e.target.seekTo) e.target.seekTo(start, true);
+              randomSkipSeekDone = true;
+              if (randomSkipCountdownEl) {
+                randomSkipCountdownEl.style.display = '';
+                var remaining = RANDOM_SKIP_SEGMENT_SEC;
+                randomSkipCountdownEl.textContent = '次の動画まで ' + formatCountdownSec(remaining);
+                if (randomSkipCountdownIntervalId != null) clearInterval(randomSkipCountdownIntervalId);
+                randomSkipCountdownIntervalId = setInterval(function () {
+                  remaining--;
+                  if (randomSkipCountdownEl) randomSkipCountdownEl.textContent = '次の動画まで ' + formatCountdownSec(remaining);
+                  if (remaining <= 0 && randomSkipCountdownIntervalId != null) {
+                    clearInterval(randomSkipCountdownIntervalId);
+                    randomSkipCountdownIntervalId = null;
+                  }
+                }, 1000);
+              }
+              randomSkipWatchTimerId = setTimeout(function () {
+                randomSkipWatchTimerId = null;
+                playNext();
+              }, RANDOM_SKIP_SEGMENT_SEC * 1000);
+            } else {
+              randomSkipSeekDone = true;
+            }
+          }
         }
       },
     },
