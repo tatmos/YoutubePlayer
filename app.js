@@ -57,7 +57,9 @@ const nextBtn = document.getElementById('next-btn');
 const playbackSpeedSelect = document.getElementById('playback-speed');
 const openEmbedDisabledInTabCheckbox = document.getElementById('open-embed-disabled-in-tab');
 const openEmbedDisabledBtn = document.getElementById('open-embed-disabled-btn');
+const instantPlaylistEmbedDisabledBtn = document.getElementById('instant-playlist-embed-disabled-btn');
 const instantPlaylistBtn = document.getElementById('instant-playlist-btn');
+const copyInstantPlaylistBtn = document.getElementById('copy-instant-playlist-btn');
 
 // ----- 永続化 -----
 function loadPlaylist() {
@@ -199,10 +201,15 @@ function renderPlaylist() {
     openEmbedDisabledBtn.disabled = embedDisabledItems.length === 0;
     openEmbedDisabledBtn.textContent = embedDisabledItems.length === 0 ? '埋め込み不可の動画を別タブで開く' : '埋め込み不可の動画を別タブで開く (' + embedDisabledItems.length + '件)';
   }
+  if (instantPlaylistEmbedDisabledBtn) {
+    instantPlaylistEmbedDisabledBtn.disabled = embedDisabledItems.length === 0;
+    instantPlaylistEmbedDisabledBtn.textContent = embedDisabledItems.length === 0 ? '埋め込み不可のみ即席プレイリストで開く' : '埋め込み不可のみ即席プレイリストで開く (' + embedDisabledItems.length + '件)';
+  }
   if (instantPlaylistBtn) {
     instantPlaylistBtn.disabled = playlist.length === 0;
     instantPlaylistBtn.textContent = playlist.length === 0 ? '即席プレイリストで開く' : '即席プレイリストで開く (' + playlist.length + '件)';
   }
+  if (copyInstantPlaylistBtn) copyInstantPlaylistBtn.disabled = playlist.length === 0;
 }
 
 function escapeHtml(s) {
@@ -229,6 +236,18 @@ function openEmbedDisabledInNewTab() {
   window.open(url, '_blank', 'noopener');
 }
 
+function getInstantPlaylistUrlForEmbedDisabled() {
+  var items = getEmbedDisabledItems();
+  if (!items.length) return null;
+  var ids = items.map(function (item) { return item.id; }).join(',');
+  return 'https://www.youtube.com/watch_videos?video_ids=' + ids;
+}
+
+function openInstantPlaylistForEmbedDisabled() {
+  var url = getInstantPlaylistUrlForEmbedDisabled();
+  if (url) window.open(url, '_blank', 'noopener');
+}
+
 function getInstantPlaylistUrl() {
   if (!playlist.length) return null;
   var ids = playlist.map(function (item) { return item.id; }).join(',');
@@ -238,6 +257,23 @@ function getInstantPlaylistUrl() {
 function openInstantPlaylist() {
   var url = getInstantPlaylistUrl();
   if (url) window.open(url, '_blank', 'noopener');
+}
+
+function copyInstantPlaylistToClipboard() {
+  var url = getInstantPlaylistUrl();
+  if (!url) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function () {
+      var btn = copyInstantPlaylistBtn;
+      if (btn) {
+        var orig = btn.textContent;
+        btn.textContent = 'コピーしました';
+        setTimeout(function () { btn.textContent = orig; }, 1500);
+      }
+    }).catch(function () { alert('コピーに失敗しました'); });
+  } else {
+    alert('このブラウザではクリップボードにコピーできません');
+  }
 }
 
 // ----- リスト操作 -----
@@ -397,7 +433,7 @@ function playNext() {
 
 function endOfListReached() {
   stopPlayer();
-  openEmbedDisabledInNewTab();
+  openInstantPlaylistForEmbedDisabled();
 }
 
 function playPrevious() {
@@ -508,7 +544,9 @@ clearBtn.addEventListener('click', clearList);
 if (prevBtn) prevBtn.addEventListener('click', playPrevious);
 if (nextBtn) nextBtn.addEventListener('click', playNext);
 if (openEmbedDisabledBtn) openEmbedDisabledBtn.addEventListener('click', openEmbedDisabledInNewTab);
+if (instantPlaylistEmbedDisabledBtn) instantPlaylistEmbedDisabledBtn.addEventListener('click', openInstantPlaylistForEmbedDisabled);
 if (instantPlaylistBtn) instantPlaylistBtn.addEventListener('click', openInstantPlaylist);
+if (copyInstantPlaylistBtn) copyInstantPlaylistBtn.addEventListener('click', copyInstantPlaylistToClipboard);
 if (playbackSpeedSelect) {
   playbackSpeedSelect.addEventListener('change', function () {
     var r = parseFloat(playbackSpeedSelect.value, 10);
