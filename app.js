@@ -49,6 +49,8 @@ const watchOnYtLink = document.getElementById('watch-on-yt-link');
 const saveTxtBtn = document.getElementById('save-txt-btn');
 const loadTxtBtn = document.getElementById('load-txt-btn');
 const loadTxtInput = document.getElementById('load-txt-input');
+const copyListBtn = document.getElementById('copy-list-btn');
+const pasteListBtn = document.getElementById('paste-list-btn');
 const skipEmbedDisabledCheckbox = document.getElementById('skip-embed-disabled');
 const playModeBar = document.getElementById('play-mode-bar');
 const playModeBtns = document.querySelectorAll('.play-mode-btn');
@@ -210,6 +212,7 @@ function renderPlaylist() {
     instantPlaylistBtn.textContent = playlist.length === 0 ? '即席プレイリストで開く' : '即席プレイリストで開く (' + playlist.length + '件)';
   }
   if (copyInstantPlaylistBtn) copyInstantPlaylistBtn.disabled = playlist.length === 0;
+  if (copyListBtn) copyListBtn.disabled = playlist.length === 0;
 }
 
 function escapeHtml(s) {
@@ -333,6 +336,48 @@ function saveListToTxt() {
   a.download = `youtube-playlist-${new Date().toISOString().slice(0, 10)}.txt`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function copyListToClipboard() {
+  if (playlist.length === 0) {
+    alert('リストが空です。');
+    return;
+  }
+  var text = playlist.map(function (item) { return item.url; }).join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      if (copyListBtn) {
+        var orig = copyListBtn.textContent;
+        copyListBtn.textContent = 'コピーしました';
+        setTimeout(function () { copyListBtn.textContent = orig; }, 1500);
+      }
+    }).catch(function () { alert('コピーに失敗しました'); });
+  } else {
+    alert('このブラウザではクリップボードにコピーできません');
+  }
+}
+
+function pasteListFromClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    alert('このブラウザではクリップボードから貼り付けできません');
+    return;
+  }
+  navigator.clipboard.readText().then(function (text) {
+    var lines = text.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    var added = 0;
+    var existingIds = new Set(playlist.map(function (item) { return item.id; }));
+    for (var i = 0; i < lines.length; i++) {
+      var id = parseYouTubeUrl(lines[i]);
+      if (id && !existingIds.has(id)) {
+        existingIds.add(id);
+        playlist.push({ id: id, url: lines[i] });
+        added++;
+      }
+    }
+    savePlaylist();
+    renderPlaylist();
+    alert(added + '件を追加しました。' + (lines.length - added) + '件はスキップ（重複または無効）しました。');
+  }).catch(function () { alert('クリップボードの読み取りに失敗しました'); });
 }
 
 function loadListFromTxt(file) {
@@ -559,6 +604,8 @@ if (playbackSpeedSelect) {
 }
 saveTxtBtn.addEventListener('click', saveListToTxt);
 loadTxtBtn.addEventListener('click', () => loadTxtInput.click());
+if (copyListBtn) copyListBtn.addEventListener('click', copyListToClipboard);
+if (pasteListBtn) pasteListBtn.addEventListener('click', pasteListFromClipboard);
 loadTxtInput.addEventListener('change', (e) => {
   const file = e.target.files?.[0];
   if (file) loadListFromTxt(file);
