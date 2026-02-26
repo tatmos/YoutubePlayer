@@ -7,6 +7,7 @@
 const STORAGE_KEY = 'youtube-player-playlist';
 const PLAY_MODE_KEY = 'youtube-player-play-mode';
 const PLAYBACK_RATE_KEY = 'youtube-player-playback-rate';
+const ADV_AREA_COLLAPSED_KEY = 'youtube-player-adv-area-collapsed';
 const PLAY_MODES = { SEQUENTIAL: 'sequential', SHUFFLE: 'shuffle', SINGLE_LOOP: 'singleLoop' };
 
 // ----- URL解析 -----
@@ -84,8 +85,6 @@ const clearBtn = document.getElementById('clear-btn');
 const listEl = document.getElementById('playlist');
 const playerContainer = document.getElementById('player-container');
 const playerHint = document.getElementById('player-hint');
-const watchOnYtEl = document.getElementById('watch-on-yt');
-const watchOnYtLink = document.getElementById('watch-on-yt-link');
 const saveTxtBtn = document.getElementById('save-txt-btn');
 const loadTxtBtn = document.getElementById('load-txt-btn');
 const loadTxtInput = document.getElementById('load-txt-input');
@@ -95,6 +94,9 @@ const pageUrlInput = document.getElementById('page-url-input');
 const collectFromPageBtn = document.getElementById('collect-from-page-btn');
 const sourceTextInput = document.getElementById('source-text-input');
 const collectFromSourceBtn = document.getElementById('collect-from-source-btn');
+const advAreaBody = document.getElementById('adv-area-body');
+const advAreaToggleBtn = document.getElementById('adv-area-toggle-btn');
+const playbackPositionEl = document.getElementById('playback-position');
 const skipEmbedDisabledCheckbox = document.getElementById('skip-embed-disabled');
 const playModeBar = document.getElementById('play-mode-bar');
 const playModeBtns = document.querySelectorAll('.play-mode-btn');
@@ -152,6 +154,39 @@ function savePlaybackRate() {
   } catch (_) {}
 }
 
+function loadAddAreaCollapsed() {
+  try {
+    return localStorage.getItem(ADV_AREA_COLLAPSED_KEY) === '1';
+  } catch (_) {}
+  return true;
+}
+
+function saveAddAreaCollapsed(collapsed) {
+  try {
+    localStorage.setItem(ADV_AREA_COLLAPSED_KEY, collapsed ? '1' : '0');
+  } catch (_) {}
+}
+
+function setAddAreaCollapsed(collapsed) {
+  if (advAreaBody) advAreaBody.classList.toggle('collapsed', !!collapsed);
+  if (advAreaToggleBtn) {
+    advAreaToggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    advAreaToggleBtn.textContent = collapsed ? '表示' : '閉じる';
+    advAreaToggleBtn.title = collapsed ? '高度な操作を表示' : '高度な操作を閉じる';
+  }
+}
+
+function updatePlaybackPositionText() {
+  if (!playbackPositionEl) return;
+  var n = playlist.length;
+  if (n === 0) {
+    playbackPositionEl.textContent = '—/0曲';
+    return;
+  }
+  var cur = currentIndex >= 0 && currentIndex < n ? currentIndex + 1 : 0;
+  playbackPositionEl.textContent = cur > 0 ? cur + '/' + n + '曲再生中' : '—/' + n + '曲';
+}
+
 function applyPlaybackRate(ytPlayer) {
   if (ytPlayer && ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(playbackRate);
 }
@@ -201,10 +236,11 @@ function formatViewCount(viewCount) {
 
 function renderPlaylist() {
   if (playlist.length === 0) {
-    listEl.innerHTML = '<li class="playlist-empty">まだ動画がありません。上にURLを入力して追加してください。</li>';
+    listEl.innerHTML = '<li class="playlist-empty">まだ動画がありません。高度な操作を開いてURLを追加してください。</li>';
     playAllBtn.disabled = true;
     if (prevBtn) prevBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = true;
+    updatePlaybackPositionText();
     return;
   }
   playAllBtn.disabled = false;
@@ -267,6 +303,7 @@ function renderPlaylist() {
   }
   if (copyInstantPlaylistBtn) copyInstantPlaylistBtn.disabled = playlist.length === 0;
   if (copyListBtn) copyListBtn.disabled = playlist.length === 0;
+  updatePlaybackPositionText();
 }
 
 function escapeHtml(s) {
@@ -567,7 +604,6 @@ function stopPlayer() {
   currentIndex = -1;
   document.querySelector('.player-section')?.classList.remove('playing');
   playerHint.style.display = '';
-  if (watchOnYtEl) watchOnYtEl.style.display = 'none';
   renderPlaylist();
 }
 
@@ -584,12 +620,6 @@ function playVideo(index) {
   const item = playlist[index];
   document.querySelector('.player-section')?.classList.add('playing');
   playerHint.style.display = 'none';
-  if (watchOnYtEl) {
-    watchOnYtEl.style.display = 'flex';
-    if (watchOnYtLink) {
-      watchOnYtLink.href = 'https://www.youtube.com/watch?v=' + item.id;
-    }
-  }
 
   if (player && playerReady) {
     player.loadVideoById(item.id);
@@ -715,6 +745,7 @@ function onYouTubeIframeAPIReady() {
   loadPlaylist();
   loadPlayMode();
   loadPlaybackRate();
+  setAddAreaCollapsed(loadAddAreaCollapsed());
   setPlayModeUI();
   if (playbackSpeedSelect) playbackSpeedSelect.value = String(playbackRate);
   renderPlaylist();
@@ -763,6 +794,13 @@ if (copyListBtn) copyListBtn.addEventListener('click', copyListToClipboard);
 if (pasteListBtn) pasteListBtn.addEventListener('click', pasteListFromClipboard);
 if (collectFromPageBtn) collectFromPageBtn.addEventListener('click', collectFromPage);
 if (collectFromSourceBtn) collectFromSourceBtn.addEventListener('click', collectFromSource);
+if (advAreaToggleBtn) {
+  advAreaToggleBtn.addEventListener('click', function () {
+    var collapsed = advAreaBody && advAreaBody.classList.contains('collapsed');
+    setAddAreaCollapsed(!collapsed);
+    saveAddAreaCollapsed(!collapsed);
+  });
+}
 loadTxtInput.addEventListener('change', (e) => {
   const file = e.target.files?.[0];
   if (file) loadListFromTxt(file);
@@ -779,3 +817,4 @@ if (playModeBtns && playModeBtns.length) {
     });
   });
 }
+setAddAreaCollapsed(loadAddAreaCollapsed());

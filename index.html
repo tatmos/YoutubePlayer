@@ -35,66 +35,73 @@
             <option value="2">2x</option>
           </select>
         </div>
-        <div class="player-watch-on-yt" id="watch-on-yt" style="display: none;">
-          <a id="watch-on-yt-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary">YouTubeで見る</a>
-          <span class="player-watch-note">埋め込みが許可されていない動画は、上のボタンからYouTubeで視聴できます。</span>
-        </div>
       </section>
 
       <section class="list-section">
-        <div class="add-form">
-          <input
-            type="text"
-            id="url-input"
-            placeholder="YouTubeのURLを貼り付け（例: https://www.youtube.com/watch?v=xxxxx）"
-            autocomplete="off"
-          />
-          <button type="button" id="add-btn" class="btn btn-primary">追加</button>
-        </div>
-        <div class="collect-from-page">
-          <input
-            type="text"
-            id="page-url-input"
-            placeholder="WebページのURLを入力（ページ内のYouTubeリンクを収集）"
-            autocomplete="off"
-          />
-          <button type="button" id="collect-from-page-btn" class="btn btn-outline">ページから収集</button>
-        </div>
-        <div class="collect-from-source">
-          <p class="collect-from-source-note">ページのソースを表示したテキストをコピーした状態で「ソースから収集」を押すと、クリップボード内のYouTubeリンクからリストを作成します。</p>
-          <textarea id="source-text-input" class="source-text-input" placeholder="ここにページのソース（HTML）をペースト…" rows="4" aria-hidden="true"></textarea>
-          <button type="button" id="collect-from-source-btn" class="btn btn-outline">ソースから収集</button>
-        </div>
-        <div class="list-header">
-          <span>再生リスト</span>
-          <div class="list-actions">
+        <div class="list-header list-header--main">
+          <span class="list-title">再生リスト</span>
+          <div class="list-controls">
             <button type="button" id="prev-btn" class="btn btn-icon btn-outline" title="前へ" aria-label="前の動画"><span class="btn-icon-inner" aria-hidden="true">&#9194;</span></button>
             <button type="button" id="next-btn" class="btn btn-icon btn-outline" title="次へ" aria-label="次の動画"><span class="btn-icon-inner" aria-hidden="true">&#9193;</span></button>
             <button type="button" id="play-all-btn" class="btn btn-secondary" disabled>最初から再生</button>
-            <button type="button" id="clear-btn" class="btn btn-outline">リストをクリア</button>
-            <button type="button" id="save-txt-btn" class="btn btn-outline">TXTに保存</button>
-            <button type="button" id="load-txt-btn" class="btn btn-outline">TXTを読み込み</button>
-            <button type="button" id="copy-list-btn" class="btn btn-outline" title="リストをクリップボードにコピー">コピー</button>
-            <button type="button" id="paste-list-btn" class="btn btn-outline" title="クリップボードからリストを追加">ペースト</button>
-            <input type="file" id="load-txt-input" accept=".txt,text/plain" style="display: none;" />
+            <span id="playback-position" class="playback-position" aria-live="polite">—/0曲</span>
           </div>
-        </div>
-        <label class="skip-embed-option">
-          <input type="checkbox" id="skip-embed-disabled" checked />
-          <span>埋め込み再生できない動画をスキップ</span>
-        </label>
-        <label class="skip-embed-option">
-          <input type="checkbox" id="open-embed-disabled-in-tab" checked />
-          <span>埋め込み再生できなかったものを即席プレイリストで再生</span>
-        </label>
-        <div class="embed-disabled-actions">
-          <button type="button" id="open-embed-disabled-btn" class="btn btn-outline" disabled>埋め込み不可の動画を別タブで開く</button>
-          <button type="button" id="instant-playlist-embed-disabled-btn" class="btn btn-outline" disabled title="埋め込み不可の動画のみで即席プレイリストを開く">埋め込み不可のみ即席プレイリストで開く</button>
-          <button type="button" id="instant-playlist-btn" class="btn btn-outline" disabled title="リストをYouTubeの即席プレイリストで再生">即席プレイリストで開く</button>
-          <button type="button" id="copy-instant-playlist-btn" class="btn btn-outline" disabled title="即席プレイリストURLをクリップボードにコピー">クリップボードにコピー</button>
         </div>
 
         <ul id="playlist" class="playlist"></ul>
+
+        <div class="adv-area" id="adv-area">
+          <div class="adv-area-header">
+            <span class="adv-area-title">高度な操作</span>
+            <button type="button" id="adv-area-toggle-btn" class="btn btn-outline btn-sm" aria-expanded="false" title="高度な操作を表示">表示</button>
+          </div>
+          <div class="adv-area-body collapsed" id="adv-area-body">
+            <div class="adv-section">
+              <span class="adv-section-title">URLを追加</span>
+              <div class="add-form">
+                <input type="text" id="url-input" placeholder="YouTubeのURLを貼り付け（例: https://www.youtube.com/watch?v=xxxxx）" autocomplete="off" />
+                <button type="button" id="add-btn" class="btn btn-primary">追加</button>
+              </div>
+              <div class="collect-from-page">
+                <input type="text" id="page-url-input" placeholder="WebページのURLを入力（ページ内のYouTubeリンクを収集）" autocomplete="off" />
+                <button type="button" id="collect-from-page-btn" class="btn btn-outline">ページから収集</button>
+              </div>
+              <div class="collect-from-source">
+                <p class="collect-from-source-note">ページのソースを表示したテキストをコピーした状態で「ソースから収集」を押すと、クリップボード内のYouTubeリンクからリストを作成します。</p>
+                <textarea id="source-text-input" class="source-text-input" placeholder="ここにページのソース（HTML）をペースト…" rows="4" aria-hidden="true"></textarea>
+                <button type="button" id="collect-from-source-btn" class="btn btn-outline">ソースから収集</button>
+              </div>
+            </div>
+            <div class="adv-section">
+              <span class="adv-section-title">リスト操作</span>
+              <div class="list-actions list-actions--adv">
+                <button type="button" id="clear-btn" class="btn btn-outline">リストをクリア</button>
+                <button type="button" id="save-txt-btn" class="btn btn-outline">TXTに保存</button>
+                <button type="button" id="load-txt-btn" class="btn btn-outline">TXTを読み込み</button>
+                <button type="button" id="copy-list-btn" class="btn btn-outline" title="リストをクリップボードにコピー">コピー</button>
+                <button type="button" id="paste-list-btn" class="btn btn-outline" title="クリップボードからリストを追加">ペースト</button>
+                <input type="file" id="load-txt-input" accept=".txt,text/plain" style="display: none;" />
+              </div>
+            </div>
+            <div class="adv-section">
+              <span class="adv-section-title">埋め込み再生</span>
+              <label class="skip-embed-option">
+                <input type="checkbox" id="skip-embed-disabled" checked />
+                <span>埋め込み再生できない動画をスキップ</span>
+              </label>
+              <label class="skip-embed-option">
+                <input type="checkbox" id="open-embed-disabled-in-tab" checked />
+                <span>埋め込み再生できなかったものを即席プレイリストで再生</span>
+              </label>
+              <div class="embed-disabled-actions">
+                <button type="button" id="open-embed-disabled-btn" class="btn btn-outline" disabled>埋め込み不可の動画を別タブで開く</button>
+                <button type="button" id="instant-playlist-embed-disabled-btn" class="btn btn-outline" disabled title="埋め込み不可の動画のみで即席プレイリストを開く">埋め込み不可のみ即席プレイリストで開く</button>
+                <button type="button" id="instant-playlist-btn" class="btn btn-outline" disabled title="リストをYouTubeの即席プレイリストで再生">即席プレイリストで開く</button>
+                <button type="button" id="copy-instant-playlist-btn" class="btn btn-outline" disabled title="即席プレイリストURLをクリップボードにコピー">クリップボードにコピー</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
 

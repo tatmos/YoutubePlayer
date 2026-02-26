@@ -169,31 +169,79 @@ body {
   color: #fff;
 }
 
-.player-watch-on-yt {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.5);
-  border-top: 1px solid var(--border);
-}
-
-.player-watch-on-yt .btn {
-  flex-shrink: 0;
-}
-
-.player-watch-note {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
 /* ===== List Section ===== */
 .list-section {
   background: var(--bg-card);
   border-radius: var(--radius);
   border: 1px solid var(--border);
   padding: 20px;
+}
+
+.list-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.list-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.playback-position {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.adv-area {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.adv-area-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.adv-area-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.adv-area-body.collapsed {
+  display: none;
+}
+
+.adv-section {
+  margin-bottom: 20px;
+}
+
+.adv-section:last-child {
+  margin-bottom: 0;
+}
+
+.adv-section-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.list-actions--adv {
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
 }
 
 .add-form {
@@ -290,6 +338,10 @@ body {
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.list-header--main {
+  margin-bottom: 16px;
 }
 
 .list-header > span {
