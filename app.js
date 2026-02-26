@@ -5,6 +5,9 @@
  */
 
 const STORAGE_KEY = 'youtube-player-playlist';
+const PLAY_MODE_KEY = 'youtube-player-play-mode';
+const PLAYBACK_RATE_KEY = 'youtube-player-playback-rate';
+const PLAY_MODES = { SEQUENTIAL: 'sequential', SHUFFLE: 'shuffle', SINGLE_LOOP: 'singleLoop' };
 
 // ----- URL解析 -----
 function parseYouTubeUrl(input) {
@@ -28,6 +31,10 @@ let playlist = [];
 let currentIndex = -1;
 let player = null;
 let playerReady = false;
+let playMode = PLAY_MODES.SEQUENTIAL;
+let shuffleOrder = [];
+let shufflePosition = 0;
+let playbackRate = 1;
 
 // ----- DOM -----
 const urlInput = document.getElementById('url-input');
@@ -42,6 +49,12 @@ const watchOnYtLink = document.getElementById('watch-on-yt-link');
 const saveTxtBtn = document.getElementById('save-txt-btn');
 const loadTxtBtn = document.getElementById('load-txt-btn');
 const loadTxtInput = document.getElementById('load-txt-input');
+const skipEmbedDisabledCheckbox = document.getElementById('skip-embed-disabled');
+const playModeBar = document.getElementById('play-mode-bar');
+const playModeBtns = document.querySelectorAll('.play-mode-btn');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
+const playbackSpeedSelect = document.getElementById('playback-speed');
 
 // ----- 永続化 -----
 function loadPlaylist() {
@@ -62,6 +75,56 @@ function savePlaylist() {
   } catch (_) {}
 }
 
+function loadPlayMode() {
+  try {
+    const m = localStorage.getItem(PLAY_MODE_KEY);
+    if (m === PLAY_MODES.SHUFFLE || m === PLAY_MODES.SINGLE_LOOP) playMode = m;
+  } catch (_) {}
+}
+
+function savePlayMode() {
+  try {
+    localStorage.setItem(PLAY_MODE_KEY, playMode);
+  } catch (_) {}
+}
+
+function loadPlaybackRate() {
+  try {
+    var r = parseFloat(localStorage.getItem(PLAYBACK_RATE_KEY), 10);
+    if (r >= 0.5 && r <= 2) playbackRate = r;
+  } catch (_) {}
+}
+
+function savePlaybackRate() {
+  try {
+    localStorage.setItem(PLAYBACK_RATE_KEY, String(playbackRate));
+  } catch (_) {}
+}
+
+function applyPlaybackRate(ytPlayer) {
+  if (ytPlayer && ytPlayer.setPlaybackRate) ytPlayer.setPlaybackRate(playbackRate);
+}
+
+function buildShuffleOrder() {
+  const order = playlist.map(function (_, i) { return i; });
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = order[i];
+    order[i] = order[j];
+    order[j] = t;
+  }
+  return order;
+}
+
+function setPlayModeUI() {
+  if (!playModeBtns || !playModeBtns.length) return;
+  playModeBtns.forEach(function (btn) {
+    const isActive = btn.getAttribute('data-mode') === playMode;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
 // ----- リストUI -----
 function getThumbnailUrl(videoId) {
   return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
@@ -80,9 +143,13 @@ function renderPlaylist() {
   if (playlist.length === 0) {
     listEl.innerHTML = '<li class="playlist-empty">まだ動画がありません。上にURLを入力して追加してください。</li>';
     playAllBtn.disabled = true;
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
     return;
   }
   playAllBtn.disabled = false;
+  if (prevBtn) prevBtn.disabled = false;
+  if (nextBtn) nextBtn.disabled = false;
   listEl.innerHTML = playlist
     .map(
       (item, index) => `
@@ -94,7 +161,7 @@ function renderPlaylist() {
         <div class="title">${escapeHtml(item.url)}</div>
         <div class="meta">
           <span class="url">${escapeHtml(item.id)}</span>
-          ${formatDuration(item.duration) ? `<span class="duration">${escapeHtml(formatDuration(item.duration))}</span>` : ''}
+          ${item.embedDisabled ? '<span class="duration duration--disabled">埋め込み再生不可</span><a href="https://www.youtube.com/watch?v=' + escapeHtml(item.id) + '" target="_blank" rel="noopener noreferrer" class="meta-yt-link">YouTubeで見る</a>' : (formatDuration(item.duration) ? `<span class="duration">${escapeHtml(formatDuration(item.duration))}</span>` : '')}
         </div>
       </div>
       <div class="actions">
@@ -107,7 +174,7 @@ function renderPlaylist() {
   listEl.querySelectorAll('.playlist-item').forEach((el) => {
     const index = parseInt(el.dataset.index, 10);
     el.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-remove')) return;
+      if (e.target.classList.contains('btn-remove') || e.target.classList.contains('meta-yt-link') || e.target.closest('.meta-yt-link')) return;
       playVideo(index);
     });
   });
@@ -117,6 +184,13 @@ function renderPlaylist() {
       removeItem(parseInt(btn.dataset.index, 10));
     });
   });
+
+  if (currentIndex >= 0) {
+    const currentEl = listEl.querySelector('.playlist-item.current');
+    if (currentEl) {
+      currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
 }
 
 function escapeHtml(s) {
@@ -223,13 +297,20 @@ function stopPlayer() {
 function playVideo(index) {
   if (index < 0 || index >= playlist.length) return;
   currentIndex = index;
+  if (playMode === PLAY_MODES.SHUFFLE) {
+    if (shuffleOrder.length !== playlist.length) {
+      shuffleOrder = buildShuffleOrder();
+    }
+    var pos = shuffleOrder.indexOf(index);
+    shufflePosition = pos >= 0 ? pos : 0;
+  }
   const item = playlist[index];
   document.querySelector('.player-section')?.classList.add('playing');
   playerHint.style.display = 'none';
   if (watchOnYtEl) {
     watchOnYtEl.style.display = 'flex';
     if (watchOnYtLink) {
-      watchOnYtLink.href = `https://www.youtube.com/watch?v=${item.id}`;
+      watchOnYtLink.href = 'https://www.youtube.com/watch?v=' + item.id;
     }
   }
 
@@ -239,6 +320,49 @@ function playVideo(index) {
     createPlayer(item.id);
   }
   renderPlaylist();
+}
+
+function playNext() {
+  if (playlist.length === 0) return;
+  if (playMode === PLAY_MODES.SINGLE_LOOP) {
+    playVideo(currentIndex);
+    return;
+  }
+  if (playMode === PLAY_MODES.SEQUENTIAL) {
+    if (currentIndex >= playlist.length - 1) {
+      playVideo(0);
+    } else {
+      playVideo(currentIndex + 1);
+    }
+    return;
+  }
+  if (playMode === PLAY_MODES.SHUFFLE) {
+    shufflePosition++;
+    if (shufflePosition >= shuffleOrder.length) {
+      shuffleOrder = buildShuffleOrder();
+      shufflePosition = 0;
+    }
+    playVideo(shuffleOrder[shufflePosition]);
+  }
+}
+
+function playPrevious() {
+  if (playlist.length === 0) return;
+  if (playMode === PLAY_MODES.SEQUENTIAL) {
+    var idx = currentIndex <= 0 ? playlist.length - 1 : currentIndex - 1;
+    playVideo(idx);
+    return;
+  }
+  if (playMode === PLAY_MODES.SHUFFLE) {
+    if (shuffleOrder.length !== playlist.length) shuffleOrder = buildShuffleOrder();
+    shufflePosition = shufflePosition <= 0 ? shuffleOrder.length - 1 : shufflePosition - 1;
+    playVideo(shuffleOrder[shufflePosition]);
+    return;
+  }
+  if (playMode === PLAY_MODES.SINGLE_LOOP) {
+    var prevIdx = currentIndex <= 0 ? playlist.length - 1 : currentIndex - 1;
+    playVideo(prevIdx);
+  }
 }
 
 // ----- YouTube IFrame API -----
@@ -266,6 +390,19 @@ function createPlayer(videoId) {
       onReady(e) {
         playerReady = true;
         if (videoId) e.target.playVideo();
+        applyPlaybackRate(e.target);
+      },
+      onError(e) {
+        if (e.data === 101 || e.data === 150) {
+          if (currentIndex >= 0 && currentIndex < playlist.length) {
+            playlist[currentIndex].embedDisabled = true;
+            savePlaylist();
+            renderPlaylist();
+          }
+          if (skipEmbedDisabledCheckbox && skipEmbedDisabledCheckbox.checked) {
+            playNext();
+          }
+        }
       },
       onStateChange(e) {
         if (e.data === YT.PlayerState.ENDED) {
@@ -277,6 +414,7 @@ function createPlayer(videoId) {
             savePlaylist();
             renderPlaylist();
           }
+          applyPlaybackRate(e.target);
         }
       },
     },
@@ -285,6 +423,10 @@ function createPlayer(videoId) {
 
 function onYouTubeIframeAPIReady() {
   loadPlaylist();
+  loadPlayMode();
+  loadPlaybackRate();
+  setPlayModeUI();
+  if (playbackSpeedSelect) playbackSpeedSelect.value = String(playbackRate);
   renderPlaylist();
 }
 
@@ -299,11 +441,43 @@ addBtn.addEventListener('click', addUrl);
 urlInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') addUrl();
 });
-playAllBtn.addEventListener('click', () => playVideo(0));
+playAllBtn.addEventListener('click', function () {
+  if (playMode === PLAY_MODES.SHUFFLE && playlist.length > 0) {
+    shuffleOrder = buildShuffleOrder();
+    shufflePosition = 0;
+    playVideo(shuffleOrder[0]);
+  } else {
+    playVideo(0);
+  }
+});
 clearBtn.addEventListener('click', clearList);
+if (prevBtn) prevBtn.addEventListener('click', playPrevious);
+if (nextBtn) nextBtn.addEventListener('click', playNext);
+if (playbackSpeedSelect) {
+  playbackSpeedSelect.addEventListener('change', function () {
+    var r = parseFloat(playbackSpeedSelect.value, 10);
+    if (!isNaN(r) && r >= 0.5 && r <= 2) {
+      playbackRate = r;
+      savePlaybackRate();
+      if (player && playerReady && player.setPlaybackRate) player.setPlaybackRate(playbackRate);
+    }
+  });
+}
 saveTxtBtn.addEventListener('click', saveListToTxt);
 loadTxtBtn.addEventListener('click', () => loadTxtInput.click());
 loadTxtInput.addEventListener('change', (e) => {
   const file = e.target.files?.[0];
   if (file) loadListFromTxt(file);
 });
+if (playModeBtns && playModeBtns.length) {
+  playModeBtns.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var mode = btn.getAttribute('data-mode');
+      if (mode === PLAY_MODES.SEQUENTIAL || mode === PLAY_MODES.SHUFFLE || mode === PLAY_MODES.SINGLE_LOOP) {
+        playMode = mode;
+        savePlayMode();
+        setPlayModeUI();
+      }
+    });
+  });
+}

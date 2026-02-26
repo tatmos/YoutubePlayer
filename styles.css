@@ -100,6 +100,75 @@ body {
   display: none;
 }
 
+.play-mode-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.play-mode-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.play-mode-label.speed-label {
+  margin-left: 8px;
+}
+
+.playback-speed-select {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.playback-speed-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.play-mode-btns {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.play-mode-btn {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.play-mode-btn:last-child {
+  border-right: none;
+}
+
+.play-mode-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.play-mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .player-watch-on-yt {
   display: flex;
   flex-wrap: wrap;
@@ -173,6 +242,22 @@ body {
   gap: 8px;
 }
 
+.skip-embed-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.skip-embed-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
 /* ===== Buttons ===== */
 .btn {
   padding: 10px 18px;
@@ -188,6 +273,21 @@ body {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn-icon {
+  padding: 0;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon .btn-icon-inner {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .btn-primary {
@@ -309,6 +409,21 @@ body {
 .playlist-item .meta .duration {
   color: var(--accent);
   font-weight: 500;
+}
+
+.playlist-item .meta .duration--disabled {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.playlist-item .meta .meta-yt-link {
+  color: var(--accent);
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.playlist-item .meta .meta-yt-link:hover {
+  text-decoration: underline;
 }
 
 .playlist-item .actions {
