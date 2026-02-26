@@ -481,6 +481,11 @@ body {
   font-weight: normal;
 }
 
+.playlist-item .meta .view-count {
+  color: var(--text-muted);
+  font-size: 0.85em;
+}
+
 .playlist-item .meta .meta-yt-link {
   color: var(--accent);
   text-decoration: none;

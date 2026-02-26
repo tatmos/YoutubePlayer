@@ -34,7 +34,8 @@ function extractYouTubeIdsFromText(text) {
     /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/g,
     /youtu\.be\/([a-zA-Z0-9_-]{11})/g,
     /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/g,
-    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/g
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/g,
+    /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g
   ];
   patterns.forEach(function (re) {
     var m;
@@ -48,7 +49,24 @@ function extractYouTubeIdsFromText(text) {
   return ids;
 }
 
-// ----- 状態 -----
+/** テキストから動画IDと再生回数を抽出。{ id, viewCount? }[] を返す（idの出現順・重複なし） */
+function extractYouTubeItemsFromText(text) {
+  if (!text || typeof text !== 'string') return [];
+  var viewCountById = {};
+  var re1 = /"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"\s*,\s*"viewCount"\s*:\s*"(\d+)"/g;
+  var re2 = /"viewCount"\s*:\s*"(\d+)"[^}]*?"videoId"\s*:\s*"([a-zA-Z0-9_-]{11})"/g;
+  var m;
+  while ((m = re1.exec(text)) !== null) {
+    if (!viewCountById[m[1]]) viewCountById[m[1]] = m[2];
+  }
+  while ((m = re2.exec(text)) !== null) {
+    if (!viewCountById[m[2]]) viewCountById[m[2]] = m[1];
+  }
+  var ids = extractYouTubeIdsFromText(text);
+  return ids.map(function (id) {
+    return { id: id, viewCount: viewCountById[id] || undefined };
+  });
+}
 let playlist = [];
 let currentIndex = -1;
 let player = null;
@@ -172,6 +190,15 @@ function formatDuration(seconds) {
   return m + ':' + String(s).padStart(2, '0');
 }
 
+function formatViewCount(viewCount) {
+  if (viewCount == null || viewCount === '') return '';
+  var s = String(viewCount).replace(/\D/g, '');
+  if (!s) return '';
+  var n = parseInt(s, 10);
+  if (!Number.isFinite(n)) return '';
+  return n.toLocaleString('ja-JP') + ' 回';
+}
+
 function renderPlaylist() {
   if (playlist.length === 0) {
     listEl.innerHTML = '<li class="playlist-empty">まだ動画がありません。上にURLを入力して追加してください。</li>';
@@ -195,6 +222,7 @@ function renderPlaylist() {
         <div class="meta">
           <span class="url">${escapeHtml(item.id)}</span>
           ${item.embedDisabled ? '<span class="duration duration--disabled">埋め込み再生不可</span><a href="https://www.youtube.com/watch?v=' + escapeHtml(item.id) + '" target="_blank" rel="noopener noreferrer" class="meta-yt-link">YouTubeで見る</a>' : (formatDuration(item.duration) ? `<span class="duration">${escapeHtml(formatDuration(item.duration))}</span>` : '')}
+          ${formatViewCount(item.viewCount) ? '<span class="view-count">' + escapeHtml(formatViewCount(item.viewCount)) + '</span>' : ''}
         </div>
       </div>
       <div class="actions">
@@ -439,20 +467,24 @@ function collectFromPage() {
   }
   fetchViaCorsProxy(raw)
     .then(function (html) {
-      var ids = extractYouTubeIdsFromText(html);
+      var items = extractYouTubeItemsFromText(html);
       var existingIds = new Set(playlist.map(function (item) { return item.id; }));
       var added = 0;
-      ids.forEach(function (id) {
-        if (!existingIds.has(id)) {
-          existingIds.add(id);
-          playlist.push({ id: id, url: 'https://www.youtube.com/watch?v=' + id });
+      items.forEach(function (item) {
+        if (!existingIds.has(item.id)) {
+          existingIds.add(item.id);
+          playlist.push({
+            id: item.id,
+            url: 'https://www.youtube.com/watch?v=' + item.id,
+            viewCount: item.viewCount
+          });
           added++;
         }
       });
       savePlaylist();
       renderPlaylist();
       if (pageUrlInput) pageUrlInput.value = '';
-      alert('ページから ' + ids.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (ids.length - added) + ' 件は重複のためスキップしました。');
+      alert('ページから ' + items.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (items.length - added) + ' 件は重複のためスキップしました。');
     })
     .catch(function (err) {
       alert('収集に失敗しました。\n' + (err.message || err) + '\n\nGitHub Pages では CORS の制限で動かないことがあります。ローカルで index.html を開くか、TXT・コピー＆ペーストでリストを追加してください。');
@@ -472,23 +504,27 @@ function collectFromSource() {
       alert('クリップボードにテキストがありません。ページのソースをコピーしてから「ソースから収集」を押してください。');
       return;
     }
-    var ids = extractYouTubeIdsFromText(text);
-    if (ids.length === 0) {
+    var items = extractYouTubeItemsFromText(text);
+    if (items.length === 0) {
       alert('YouTubeリンクが見つかりませんでした。');
       return;
     }
     var existingIds = new Set(playlist.map(function (item) { return item.id; }));
     var added = 0;
-    ids.forEach(function (id) {
-      if (!existingIds.has(id)) {
-        existingIds.add(id);
-        playlist.push({ id: id, url: 'https://www.youtube.com/watch?v=' + id });
+    items.forEach(function (item) {
+      if (!existingIds.has(item.id)) {
+        existingIds.add(item.id);
+        playlist.push({
+          id: item.id,
+          url: 'https://www.youtube.com/watch?v=' + item.id,
+          viewCount: item.viewCount
+        });
         added++;
       }
     });
     savePlaylist();
     renderPlaylist();
-    alert('ソースから ' + ids.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (ids.length - added) + ' 件は重複のためスキップしました。');
+    alert('ソースから ' + items.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (items.length - added) + ' 件は重複のためスキップしました。');
   }
   if (navigator.clipboard && navigator.clipboard.readText) {
     navigator.clipboard.readText().then(runWithText).catch(function () {
