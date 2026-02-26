@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube リスト再生</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>YouTube リスト再生</h1>
+      <p class="subtitle">URLを登録して連続再生</p>
+    </header>
+
+    <main class="main">
+      <section class="player-section">
+        <div id="player-container"></div>
+        <p class="player-hint" id="player-hint">リストにURLを追加して再生を開始してください</p>
+        <div class="player-watch-on-yt" id="watch-on-yt" style="display: none;">
+          <a id="watch-on-yt-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary">YouTubeで見る</a>
+          <span class="player-watch-note">埋め込みが許可されていない動画は、上のボタンからYouTubeで視聴できます。</span>
+        </div>
+      </section>
+
+      <section class="list-section">
+        <div class="add-form">
+          <input
+            type="text"
+            id="url-input"
+            placeholder="YouTubeのURLを貼り付け（例: https://www.youtube.com/watch?v=xxxxx）"
+            autocomplete="off"
+          />
+          <button type="button" id="add-btn" class="btn btn-primary">追加</button>
+        </div>
+
+        <div class="list-header">
+          <span>再生リスト</span>
+          <div class="list-actions">
+            <button type="button" id="play-all-btn" class="btn btn-secondary" disabled>最初から再生</button>
+            <button type="button" id="clear-btn" class="btn btn-outline">リストをクリア</button>
+            <button type="button" id="save-txt-btn" class="btn btn-outline">TXTに保存</button>
+            <button type="button" id="load-txt-btn" class="btn btn-outline">TXTを読み込み</button>
+            <input type="file" id="load-txt-input" accept=".txt,text/plain" style="display: none;" />
+          </div>
+        </div>
+
+        <ul id="playlist" class="playlist"></ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>YouTubeのURL（youtube.com/watch?v=... または youtu.be/...）に対応</p>
+    </footer>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="app.js"></script>
+</body>
+</html>
