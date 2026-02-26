@@ -405,6 +405,20 @@ function pasteListFromClipboard() {
 }
 
 var CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+var CORS_PROXY_FALLBACKS = ['https://api.allorigins.win/raw?url=', 'https://corsproxy.io/?'];
+
+function fetchViaCorsProxy(url) {
+  var targetUrl = encodeURIComponent(url);
+  function tryProxy(index) {
+    if (index >= CORS_PROXY_FALLBACKS.length) return Promise.reject(new Error('すべてのプロキシで取得できませんでした。'));
+    var proxyUrl = CORS_PROXY_FALLBACKS[index] + targetUrl;
+    return fetch(proxyUrl).then(function (res) {
+      if (!res.ok) throw new Error('取得に失敗（' + res.status + '）');
+      return res.text();
+    }).catch(function () { return tryProxy(index + 1); });
+  }
+  return tryProxy(0);
+}
 
 function collectFromPage() {
   var raw = pageUrlInput && pageUrlInput.value.trim();
@@ -421,12 +435,7 @@ function collectFromPage() {
     btn.disabled = true;
     btn.textContent = '収集中...';
   }
-  var proxyUrl = CORS_PROXY + encodeURIComponent(raw);
-  fetch(proxyUrl)
-    .then(function (res) {
-      if (!res.ok) throw new Error('ページの取得に失敗しました（' + res.status + '）');
-      return res.text();
-    })
+  fetchViaCorsProxy(raw)
     .then(function (html) {
       var ids = extractYouTubeIdsFromText(html);
       var existingIds = new Set(playlist.map(function (item) { return item.id; }));
@@ -444,7 +453,7 @@ function collectFromPage() {
       alert('ページから ' + ids.length + ' 件のYouTubeリンクを検出し、' + added + ' 件を追加しました。' + (ids.length - added) + ' 件は重複のためスキップしました。');
     })
     .catch(function (err) {
-      alert('収集に失敗しました。\n' + (err.message || err) + '\n\nCORSの制限で取得できないページの場合は、TXTに保存したリストを読み込むか、手動でURLを追加してください。');
+      alert('収集に失敗しました。\n' + (err.message || err) + '\n\nGitHub Pages では CORS の制限で動かないことがあります。ローカルで index.html を開くか、TXT・コピー＆ペーストでリストを追加してください。');
     })
     .finally(function () {
       if (btn) {
