@@ -268,6 +268,9 @@ function renderPlaylist() {
   playAllBtn.disabled = false;
   if (prevBtn) prevBtn.disabled = false;
   if (nextBtn) nextBtn.disabled = false;
+  var isPlaying = currentIndex >= 0 || randomSkipWatchTimerId != null;
+  playAllBtn.textContent = isPlaying ? '停止' : '再生';
+  playAllBtn.setAttribute('aria-label', isPlaying ? '再生を停止' : '最初から再生');
   listEl.innerHTML = playlist
     .map(
       (item, index) => `
@@ -836,6 +839,11 @@ urlInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') addUrl();
 });
 playAllBtn.addEventListener('click', function () {
+  var isPlaying = currentIndex >= 0 || randomSkipWatchTimerId != null;
+  if (isPlaying) {
+    stopPlayer();
+    return;
+  }
   if (playMode === PLAY_MODES.SHUFFLE && playlist.length > 0) {
     shuffleOrder = buildShuffleOrder();
     shufflePosition = 0;
