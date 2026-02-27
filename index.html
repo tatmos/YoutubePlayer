@@ -17,24 +17,6 @@
       <section class="player-section">
         <div id="player-container"></div>
         <p class="player-hint" id="player-hint">リストにURLを追加して再生を開始してください</p>
-        <div class="play-mode-bar" id="play-mode-bar">
-          <span class="play-mode-label">再生モード:</span>
-          <div class="play-mode-btns" role="group" aria-label="再生モード">
-            <button type="button" class="play-mode-btn active" data-mode="sequential" aria-pressed="true">連続再生</button>
-            <button type="button" class="play-mode-btn" data-mode="shuffle" aria-pressed="false">シャッフル</button>
-            <button type="button" class="play-mode-btn" data-mode="singleLoop" aria-pressed="false">1曲ループ</button>
-          </div>
-          <span class="play-mode-label speed-label">再生速度:</span>
-          <select id="playback-speed" class="playback-speed-select" aria-label="再生速度">
-            <option value="0.5">0.5x</option>
-            <option value="0.75">0.75x</option>
-            <option value="1" selected>1x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-            <option value="1.75">1.75x</option>
-            <option value="2">2x</option>
-          </select>
-        </div>
         <p id="random-skip-countdown" class="random-skip-countdown" style="display: none;" aria-live="polite"></p>
       </section>
 
@@ -46,6 +28,24 @@
             <button type="button" id="next-btn" class="btn btn-icon btn-outline" title="次へ" aria-label="次の動画"><span class="btn-icon-inner" aria-hidden="true">&#9193;</span></button>
             <button type="button" id="play-all-btn" class="btn btn-secondary" disabled>再生</button>
             <span id="playback-position" class="playback-position" aria-live="polite">—/0曲</span>
+            <div class="list-controls-mode">
+              <span class="play-mode-label">再生モード:</span>
+              <div class="play-mode-btns" role="group" aria-label="再生モード">
+                <button type="button" class="play-mode-btn active" data-mode="sequential" aria-pressed="true">連続再生</button>
+                <button type="button" class="play-mode-btn" data-mode="shuffle" aria-pressed="false">シャッフル</button>
+                <button type="button" class="play-mode-btn" data-mode="singleLoop" aria-pressed="false">1曲ループ</button>
+              </div>
+              <span class="play-mode-label speed-label">再生速度:</span>
+              <select id="playback-speed" class="playback-speed-select" aria-label="再生速度">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="1.75">1.75x</option>
+                <option value="2">2x</option>
+              </select>
+            </div>
           </div>
         </div>
 

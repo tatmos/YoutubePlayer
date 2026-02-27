@@ -118,7 +118,6 @@ const advAreaBody = document.getElementById('adv-area-body');
 const advAreaToggleBtn = document.getElementById('adv-area-toggle-btn');
 const playbackPositionEl = document.getElementById('playback-position');
 const skipEmbedDisabledCheckbox = document.getElementById('skip-embed-disabled');
-const playModeBar = document.getElementById('play-mode-bar');
 const playModeBtns = document.querySelectorAll('.play-mode-btn');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
@@ -271,9 +270,20 @@ function renderPlaylist() {
   var isPlaying = currentIndex >= 0 || randomSkipWatchTimerId != null;
   playAllBtn.textContent = isPlaying ? '停止' : '再生';
   playAllBtn.setAttribute('aria-label', isPlaying ? '再生を停止' : '最初から再生');
-  listEl.innerHTML = playlist
+  var displayOrder = [];
+  if (currentIndex >= 0 && currentIndex < playlist.length) {
+    displayOrder.push(currentIndex);
+    for (var i = 0; i < playlist.length; i++) {
+      if (i !== currentIndex) displayOrder.push(i);
+    }
+  } else {
+    for (var i = 0; i < playlist.length; i++) displayOrder.push(i);
+  }
+  listEl.innerHTML = displayOrder
     .map(
-      (item, index) => `
+      (index) => {
+        var item = playlist[index];
+        return `
     <li class="playlist-item ${index === currentIndex ? 'current' : ''}" data-index="${index}">
       <div class="thumb">
         <img src="${getThumbnailUrl(item.id)}" alt="" loading="lazy" />
@@ -289,9 +299,14 @@ function renderPlaylist() {
       <div class="actions">
         <button type="button" class="btn-remove" data-index="${index}" title="削除">削除</button>
       </div>
-    </li>`
+    </li>`;
+      }
     )
     .join('');
+
+  if (currentIndex >= 0 && listEl.scrollTop !== undefined) {
+    listEl.scrollTop = 0;
+  }
 
   listEl.querySelectorAll('.playlist-item').forEach((el) => {
     const index = parseInt(el.dataset.index, 10);
@@ -307,12 +322,6 @@ function renderPlaylist() {
     });
   });
 
-  if (currentIndex >= 0) {
-    const currentEl = listEl.querySelector('.playlist-item.current');
-    if (currentEl) {
-      currentEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }
   var embedDisabledItems = getEmbedDisabledItems();
   if (openEmbedDisabledBtn) {
     openEmbedDisabledBtn.disabled = embedDisabledItems.length === 0;
